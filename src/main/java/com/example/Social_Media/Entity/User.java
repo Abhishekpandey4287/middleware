@@ -30,4 +30,13 @@ public class User {
     private String password;
 
     private String role;
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }
+
