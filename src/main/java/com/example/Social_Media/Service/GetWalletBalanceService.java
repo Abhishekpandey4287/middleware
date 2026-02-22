@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service("getWalletBalance")
 public class GetWalletBalanceService implements Action {
@@ -29,21 +31,27 @@ public class GetWalletBalanceService implements Action {
 
         Long userId = node.get("userId").asLong();
 
-        List<WalletTransaction> transactions = walletRepository.findAll()
-                .stream()
-                .filter(txn -> txn.getUser().getId().equals(userId))
-                .toList();
+        // Get all transactions for user
+        List<WalletTransaction> transactions = walletRepository.findByUserId(userId);
 
+        // Calculate balance from successful transactions only
         Double balance = transactions.stream()
+                .filter(txn -> "success".equals(txn.getStatus())) // Only count successful transactions
                 .mapToDouble(txn -> {
-                    if (txn.getTxnType().equals("credit")) {
+                    if ("credit".equals(txn.getTxnType())) {
                         return txn.getAmount();
-                    } else {
+                    } else if ("debit".equals(txn.getTxnType())) {
                         return -txn.getAmount();
                     }
+                    return 0.0;
                 })
                 .sum();
 
-        return "{\"userId\": " + userId + ", \"balance\": " + balance + "}";
+        // FIXED: Return proper object structure matching WalletBalance data class
+        Map<String, Object> walletBalance = new HashMap<>();
+        walletBalance.put("userId", userId);
+        walletBalance.put("balance", balance);
+
+        return objectMapper.writeValueAsString(walletBalance);
     }
 }

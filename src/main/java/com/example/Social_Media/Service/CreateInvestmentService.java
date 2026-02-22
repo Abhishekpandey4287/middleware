@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service("createInvestment")
 public class CreateInvestmentService implements Action {
@@ -29,25 +28,33 @@ public class CreateInvestmentService implements Action {
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
 
-        if (!node.has("investorId") || !node.has("creatorId") || !node.has("amount")) {
-            return "{\"error\": \"investorId, creatorId, and amount are required\"}";
+        // FIXED: Map parameters correctly from UniversalTaskRequest
+        // userId = investorId, followingId = creatorId, amount = amount
+        if (!node.has("userId") || !node.has("followingId") || !node.has("amount")) {
+            return "{\"error\": \"userId (investorId), followingId (creatorId), and amount are required\"}";
         }
 
-        Long investorId = node.get("investorId").asLong();
-        Long creatorId = node.get("creatorId").asLong();
+        Long investorId = node.get("userId").asLong(); // userId is mapped to investorId
+        Long creatorId = node.get("followingId").asLong(); // followingId is mapped to creatorId
         Double amount = node.get("amount").asDouble();
 
         if (amount <= 0) {
             return "{\"error\": \"Investment amount must be positive\"}";
         }
 
-        User investor = userRepository.findById(investorId)
-                .orElse(null);
-        User creator = userRepository.findById(creatorId)
-                .orElse(null);
+        User investor = userRepository.findById(investorId).orElse(null);
+        User creator = userRepository.findById(creatorId).orElse(null);
 
-        if (investor == null || creator == null) {
-            return "{\"error\": \"Investor or Creator not found\"}";
+        if (investor == null) {
+            return "{\"error\": \"Investor not found\"}";
+        }
+        if (creator == null) {
+            return "{\"error\": \"Creator not found\"}";
+        }
+
+        // Prevent self-investment
+        if (investorId.equals(creatorId)) {
+            return "{\"error\": \"Cannot invest in yourself\"}";
         }
 
         Investment investment = new Investment();

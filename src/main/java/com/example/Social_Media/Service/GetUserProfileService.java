@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service("getUserProfile")
 public class GetUserProfileService implements Action {
 
@@ -21,19 +23,26 @@ public class GetUserProfileService implements Action {
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
 
-        if (!node.has("userId")) {
-            return "{\"error\": \"userId is required\"}";
+        Optional<User> userOpt = Optional.empty();
+
+        // Support fetching by either userId or username
+        if (node.has("userId")) {
+            Long userId = node.get("userId").asLong();
+            userOpt = userRepository.findById(userId);
+        } else if (node.has("username")) {
+            String username = node.get("username").asText();
+            userOpt = userRepository.findByUsername(username);
+        } else {
+            return "{\"error\": \"userId or username is required\"}";
         }
 
-        Long userId = node.get("userId").asLong();
-        User user = userRepository.findById(userId)
-                .orElse(null);
-
-        if (user == null) {
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Remove password from response
+            user.setPassword(null);
+            return objectMapper.writeValueAsString(user);
+        } else {
             return "{\"error\": \"User not found\"}";
         }
-
-        user.setPassword(null); // Don't expose password
-        return objectMapper.writeValueAsString(user);
     }
 }

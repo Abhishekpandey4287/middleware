@@ -21,17 +21,22 @@ public class CloseInvestmentService implements Action {
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
 
-        if (!node.has("investmentId")) {
-            return "{\"error\": \"investmentId is required\"}";
+        // FIXED: Map from contentId to investmentId
+        if (!node.has("contentId")) {
+            return "{\"error\": \"contentId (investmentId) is required\"}";
         }
 
-        Long investmentId = node.get("investmentId").asLong();
+        Long investmentId = node.get("contentId").asLong(); // contentId is mapped to investmentId
 
-        Investment investment = investmentRepository.findById(investmentId)
-                .orElse(null);
+        Investment investment = investmentRepository.findById(investmentId).orElse(null);
 
         if (investment == null) {
             return "{\"error\": \"Investment not found\"}";
+        }
+
+        // Check if already closed
+        if ("closed".equals(investment.getStatus())) {
+            return "{\"error\": \"Investment is already closed\"}";
         }
 
         investment.setStatus("closed");

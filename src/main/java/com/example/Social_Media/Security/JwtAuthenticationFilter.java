@@ -25,7 +25,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        // Skip JWT validation for public endpoints
         if (request.getRequestURI().contains("/api/app/process")) {
             filterChain.doFilter(request, response);
             return;
@@ -39,8 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token)) {
                 String email = jwtUtil.extractEmail(token);
                 request.setAttribute("userEmail", email);
-
-                // Set authentication in SecurityContext
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
                 SecurityContextHolder.getContext().setAuthentication(authentication);

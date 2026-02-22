@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service("getTransactionHistory")
 public class GetTransactionHistoryService implements Action {
@@ -29,10 +31,11 @@ public class GetTransactionHistoryService implements Action {
 
         Long userId = node.get("userId").asLong();
 
-        List<WalletTransaction> transactions = walletRepository.findAll()
+        // FIXED: Use repository method and sort by date (newest first)
+        List<WalletTransaction> transactions = walletRepository.findByUserId(userId)
                 .stream()
-                .filter(txn -> txn.getUser().getId().equals(userId))
-                .toList();
+                .sorted(Comparator.comparing(WalletTransaction::getCreatedAt).reversed())
+                .collect(Collectors.toList());
 
         return objectMapper.writeValueAsString(transactions);
     }

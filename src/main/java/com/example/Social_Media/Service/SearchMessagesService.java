@@ -1,8 +1,8 @@
 package com.example.Social_Media.Service;
 
 import com.example.Social_Media.Action.Action;
-import com.example.Social_Media.Entity.User;
-import com.example.Social_Media.Repository.UserRepository;
+import com.example.Social_Media.Entity.Message;
+import com.example.Social_Media.Repository.MessageRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service("searchUsers")
-public class SearchUsersService implements Action {
+@Service("searchMessages")
+public class SearchMessagesService implements Action {
 
     @Autowired
-    private UserRepository userRepository;
+    private MessageRepository messageRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -23,16 +23,15 @@ public class SearchUsersService implements Action {
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
 
-        if (!node.has("query")) {
-            return "{\"error\": \"search query is required\"}";
+        if (!node.has("chatId") || !node.has("query")) {
+            return "{\"error\": \"chatId and query are required\"}";
         }
 
+        Long chatId = node.get("chatId").asLong();
         String query = node.get("query").asText();
-        List<User> results = userRepository.findByNameContainingIgnoreCaseOrUsernameContainingIgnoreCase(query, query);
 
-        // Remove passwords from response
-        results.forEach(user -> user.setPassword(null));
+        List<Message> messages = messageRepository.searchMessagesInChat(chatId, query);
 
-        return objectMapper.writeValueAsString(results);
+        return objectMapper.writeValueAsString(messages);
     }
 }
