@@ -12,5 +12,5 @@ public class AppUpdateInfo {
     private int latestVersionCode;
     private boolean forceUpdate;
     private String updateMessage;
-    private String playStoreUrl;
+    private String apkDownloadUrl;
 }
