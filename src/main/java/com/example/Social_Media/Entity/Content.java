@@ -21,5 +21,7 @@ public class Content {
     private String videoUrl;
     private String thumbnailUrl;
     private Integer views = 0;
+
+    @Column(name = "likes")
     private Integer likes = 0;
 }
