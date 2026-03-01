@@ -20,17 +20,31 @@ public class RefreshTokenService implements Action {
     @Override
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
+
+        if (!node.has("refreshToken")) {
+            return "{\"error\": \"refreshToken is required\"}";
+        }
+
         String refreshToken = node.get("refreshToken").asText();
 
-        if (jwtUtil.validateToken(refreshToken)) {
-            String email = jwtUtil.extractEmail(refreshToken);
-            String newAccessToken = jwtUtil.generateAccessToken(email);
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
 
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("accessToken", newAccessToken);
-            return objectMapper.writeValueAsString(response);
-        } else {
-            return "{}";
+            if (jwtUtil.isRefreshTokenExpired(refreshToken)) {
+                return "{\"error\": \"REFRESH_TOKEN_EXPIRED\", " +
+                        "\"message\": \"Session has expired. Please log in again.\"}";
+            }
+
+            return "{\"error\": \"INVALID_REFRESH_TOKEN\", " +
+                    "\"message\": \"Invalid refresh token.\"}";
         }
+
+        String email = jwtUtil.extractEmailFromRefreshToken(refreshToken);
+        String newAccessToken = jwtUtil.generateAccessToken(email);
+
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("accessToken", newAccessToken);
+        response.put("expiresIn", jwtUtil.getAccessTokenValidityMs() / 1000); // seconds
+
+        return objectMapper.writeValueAsString(response);
     }
 }
