@@ -32,20 +32,26 @@ public class LoginService implements Action {
     public String handle(String requestJson) throws Exception {
         JsonNode node = objectMapper.readTree(requestJson);
 
-        if (!node.has("email") || !node.has("password")) {
-            return "{\"error\": \"Email and password are required\"}";
+        String identifier = null;
+        if (node.has("email"))    identifier = node.get("email").asText();
+        if (node.has("username")) identifier = node.get("username").asText();
+
+        if (identifier == null || !node.has("password")) {
+            return "{\"error\": \"Identifier (email or username) and password are required\"}";
         }
 
-        String email = node.get("email").asText();
         String password = node.get("password").asText();
 
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        Optional<User> userOpt = userRepository.findByEmail(identifier);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByUsername(identifier);
+        }
 
         if (userOpt.isPresent() && passwordEncoder.matches(password, userOpt.get().getPassword())) {
             User user = userOpt.get();
 
-            String accessToken = jwtUtil.generateAccessToken(email);
-            String refreshToken = jwtUtil.generateRefreshToken(email);
+            String accessToken  = jwtUtil.generateAccessToken(user.getEmail());
+            String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
             ObjectNode response = objectMapper.createObjectNode();
             response.put("id", user.getId());
@@ -54,7 +60,6 @@ public class LoginService implements Action {
             response.put("role", user.getRole());
             response.put("accessToken", accessToken);
             response.put("refreshToken", refreshToken);
-
             return objectMapper.writeValueAsString(response);
         } else {
             return "{\"error\": \"Invalid email or password\"}";
