@@ -10,10 +10,11 @@ public class PublicActions {
 
     public static final Set<String> PUBLIC = Set.of(
             "loginUser",
-            "users",                    // createUser / signup
+            "users",
             "checkUsernameAvailability",
             "refreshToken",
-            "checkAppUpdate"
+            "checkAppUpdate",
+            "setAppUpdate"
     );
 
     public static boolean isPublic(String action) {
